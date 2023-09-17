@@ -168,25 +168,61 @@ fn kernel_main() -> ! {
     }
 
     // Read the binary's size.
-    let mut size: u32 = u32::from(console().read_char() as u8);
-    size |= u32::from(console().read_char() as u8) << 8;
-    size |= u32::from(console().read_char() as u8) << 16;
-    size |= u32::from(console().read_char() as u8) << 24;
+    // let mut size: u32 = u32::from(console().read_char() as u8);
+    // size |= u32::from(console().read_char() as u8) << 8;
+    // size |= u32::from(console().read_char() as u8) << 16;
+    // size |= u32::from(console().read_char() as u8) << 24;
 
     // Trust it's not too big.
     console().write_char('O');
     console().write_char('K');
 
     let kernel_addr: *mut u8 = bsp::memory::board_default_load_addr() as *mut u8;
+    // unsafe {
+    //     // Read the kernel byte by byte.
+    //     for i in 0..size {
+    //         core::ptr::write_volatile(kernel_addr.offset(i as isize), console().read_char() as
+    // u8)     }
+    // }
+
+    // board_default_load_addr() is 0x8_0000
+    let base = 0x8_0000;
+    let src_addr: *const u8 = (base + 10544) as *const u8; // 10544 is size of original kernel8.img
+    let size = 100000; // 100000 is enough for arceos-raspi4.bin
+
+    unsafe {
+        println!("src_addr\n");
+        println!("{:x}", *src_addr.offset(0));
+        println!("{:x}", *src_addr.offset(1));
+        println!("{:x}", *src_addr.offset(2));
+        println!("{:x}", *src_addr.offset(3));
+        println!("{:x}", *src_addr.offset(4));
+        println!("{:x}", *src_addr.offset(5));
+        println!("{:x}", *src_addr.offset(6));
+        println!("{:x}", *src_addr.offset(7));
+    }
+
     unsafe {
         // Read the kernel byte by byte.
         for i in 0..size {
-            core::ptr::write_volatile(kernel_addr.offset(i as isize), console().read_char() as u8)
+            core::ptr::write_volatile(kernel_addr.offset(i as isize), *src_addr.offset(i))
         }
     }
 
     println!("[ML] Loaded! Executing the payload now\n");
     console().flush();
+
+    unsafe {
+        println!("kernel_addr\n");
+        println!("{:x}", *kernel_addr.offset(0));
+        println!("{:x}", *kernel_addr.offset(1));
+        println!("{:x}", *kernel_addr.offset(2));
+        println!("{:x}", *kernel_addr.offset(3));
+        println!("{:x}", *kernel_addr.offset(4));
+        println!("{:x}", *kernel_addr.offset(5));
+        println!("{:x}", *kernel_addr.offset(6));
+        println!("{:x}", *kernel_addr.offset(7));
+    }
 
     // Use black magic to create a function pointer.
     let kernel: fn() -> ! = unsafe { core::mem::transmute(kernel_addr) };
